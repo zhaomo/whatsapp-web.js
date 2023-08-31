@@ -25,6 +25,11 @@ client.on('qr', (qr) => {
     console.log('QR RECEIVED', qr);
 });
 
+client.on('qr', (code) => {
+    // NOTE: This event will not be fired if a session is specified.
+    console.log('DEVICE CODE RECEIVED', code);
+});
+
 client.on('wait_Enter_Phone_Number', () => {
     // NOTE: This event will not be fired if a session is specified.
     console.log('WAIT ENTER PHONE NUMBER');

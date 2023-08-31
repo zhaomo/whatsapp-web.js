@@ -154,6 +154,11 @@ class Client extends EventEmitter {
             referer: 'https://whatsapp.com/',
         });
 
+        // 监听页面错误事件
+        page.on('error', (error) => {
+            console.error('监控页面崩溃:', error);
+        });
+
         // 监听页面内部错误事件
         page.on('pageerror', (pageError) => {
             console.error('监控页面崩溃:', pageError);
@@ -838,123 +843,7 @@ class Client extends EventEmitter {
             });
             const deviceQrcodeButton = await page.$(DEVICE_QRCODE_BUTTON);
             await deviceQrcodeButton.click();
-
-            const SELECT_COUNTRY_FORM =
-                '.landing-main div:nth-child(1) div:nth-child(3)';
-            // const RETURN_QR_CODE =
-            //     '.landing-main div:nth-child(1) div:nth-child(4)';
-            const SELECT_COUNTRY_BUTTON =
-                'div[date-testid="link-device-phone-number-country-selector"]';
-            const INPUT_FILTER_COUNTRY = '.lexical-rich-text-input';
-            const FILTER_COUNTRY_OPTION = 'div[role="listbox"]';
-
-            await page.waitForSelector(SELECT_COUNTRY_BUTTON, {
-                timeout: this.options.authTimeoutMs,
-            });
-            const selectCountryElement = await page.$(SELECT_COUNTRY_BUTTON);
-            await selectCountryElement.click();
-            await page.waitForSelector(INPUT_FILTER_COUNTRY, {
-                timeout: this.options.authTimeoutMs,
-            });
-            await page.type(INPUT_FILTER_COUNTRY, '86');
-            await this.sleep(200);
-
-            await page.waitForSelector(FILTER_COUNTRY_OPTION, {
-                timeout: this.options.authTimeoutMs,
-            });
-            const selectCountryOptionElement = await page.$(
-                `${FILTER_COUNTRY_OPTION} div:nth-child(1)`
-            );
-
-            await selectCountryOptionElement.click();
-
-            await this.sleep(1000);
-
-            await page.type('input', '13991379829');
-
-            await this.sleep(1000);
-
-            const nextButton = await page.$(
-                `${SELECT_COUNTRY_FORM} div:nth-child(3)`
-            );
-            await nextButton.click();
-
-            const PHONE_NUMBER_ERROR =
-                '#link-device-phone-number-entry-screen-error';
-            const QR_CONTAINER =
-                'div[aria-details="link-device-phone-number-code-screen-instructions"]';
-
-            const waitForElement1 = page.waitForSelector(PHONE_NUMBER_ERROR, {
-                timeout: 5000,
-            }); 
-            const waitForElement2 = page.waitForSelector(QR_CONTAINER, {
-                timeout: 5000,
-            }); 
-            await Promise.race([waitForElement1, waitForElement2]);
-
-            if (await page.$(PHONE_NUMBER_ERROR)) {
-                console.log('元素1出现，执行相应的逻辑');
-            } else if (await page.$(QR_CONTAINER)) {
-                console.log('元素2出现，执行相应的逻辑');
-            }
-
-            // let qrRetries = 0;
-            // await page.exposeFunction('qrChanged', async (qr) => {
-            //     /**
-            //      * Emitted when a QR code is received
-            //      * @event Client#qr
-            //      * @param {string} qr QR Code
-            //      */
-            //     this.emit(Events.QR_RECEIVED, qr);
-            //     if (this.options.qrMaxRetries > 0) {
-            //         qrRetries++;
-            //         if (qrRetries > this.options.qrMaxRetries) {
-            //             this.emit(
-            //                 Events.DISCONNECTED,
-            //                 'Max qrcode retries reached'
-            //             );
-            //             await this.destroy();
-            //         }
-            //     }
-            // });
-
-            // await page.evaluate(
-            //     function (selectors) {
-            //         const qr_container = document.querySelector(
-            //             selectors.QR_CONTAINER
-            //         );
-            //         window.qrChanged(qr_container.dataset.ref);
-
-            //         this.observer = new MutationObserver((muts) => {
-            //             muts.forEach((mut) => {
-            //                 // Listens to qr token change
-            //                 if (
-            //                     mut.type === 'attributes' &&
-            //                     mut.attributeName === 'data-ref'
-            //                 ) {
-            //                     window.qrChanged(mut.target.dataset.ref);
-            //                 }
-            //                 // Listens to retry button, when found, click it
-            //                 else if (mut.type === 'childList') {
-            //                     const retry_button = document.querySelector(
-            //                         selectors.QR_RETRY_BUTTON
-            //                     );
-            //                     if (retry_button) retry_button.click();
-            //                 }
-            //             });
-            //         });
-            //         this.observer.observe(qr_container.parentElement, {
-            //             subtree: true,
-            //             childList: true,
-            //             attributes: true,
-            //             attributeFilter: ['data-ref'],
-            //         });
-            //     },
-            //     {
-            //         QR_CONTAINER,
-            //         QR_RETRY_BUTTON,
-            //     }
-            // );
+            await this.handleDeviceCodeProcess();
         } else {
             console.log('执行扫码登录');
             const QR_CONTAINER = 'div[data-ref]';
@@ -1015,6 +904,145 @@ class Client extends EventEmitter {
                     QR_CONTAINER,
                     QR_RETRY_BUTTON,
                 }
+            );
+        }
+    }
+
+    async handleDeviceCodeProcess() {
+        const page = this.pupPage;
+        const SELECT_COUNTRY_FORM =
+                '.landing-main div:nth-child(1) div:nth-child(3)';
+        // const RETURN_QR_CODE =
+        //     '.landing-main div:nth-child(1) div:nth-child(4)';
+        const SELECT_COUNTRY_BUTTON =
+            'div[date-testid="link-device-phone-number-country-selector"]';
+        const INPUT_FILTER_COUNTRY = '.lexical-rich-text-input';
+        const FILTER_COUNTRY_OPTION = 'div[role="listbox"]';
+
+        await page.waitForSelector(SELECT_COUNTRY_BUTTON, {
+            timeout: this.options.authTimeoutMs,
+        });
+        const selectCountryElement = await page.$(SELECT_COUNTRY_BUTTON);
+        await selectCountryElement.click();
+        await page.waitForSelector(INPUT_FILTER_COUNTRY, {
+            timeout: this.options.authTimeoutMs,
+        });
+        await page.type(INPUT_FILTER_COUNTRY, '86');
+        await this.sleep(200);
+
+        await page.waitForSelector(FILTER_COUNTRY_OPTION, {
+            timeout: this.options.authTimeoutMs,
+        });
+        const selectCountryOptionElement = await page.$(
+            `${FILTER_COUNTRY_OPTION} div:nth-child(1)`
+        );
+
+        await selectCountryOptionElement.click();
+
+        await this.sleep(1000);
+
+        await page.type('input', '13991379829');
+
+        await this.sleep(1000);
+
+        const nextButton = await page.$(
+            `${SELECT_COUNTRY_FORM} div:nth-child(3)`
+        );
+        await nextButton.click();
+
+        const PHONE_NUMBER_ERROR =
+            '#link-device-phone-number-entry-screen-error';
+        const QR_CONTAINER =
+            'div[aria-details="link-device-phone-number-code-screen-instructions"]';
+
+        const waitForError = page.waitForSelector(PHONE_NUMBER_ERROR, {
+            timeout: this.options.authTimeoutMs,
+        }); 
+        const waitForQr = page.waitForSelector(QR_CONTAINER, {
+            timeout: this.options.authTimeoutMs,
+        }); 
+        await Promise.race([waitForError, waitForQr]);
+
+        if (await page.$(PHONE_NUMBER_ERROR)) {
+            console.log('手机号验证出错，走错误流程');
+        } else if (await page.$(QR_CONTAINER)) {
+            console.log('执行设备码流程');
+            let qrRetries = 0;
+            await page.exposeFunction('qrChanged', async (code) => {
+                /**
+                 * Emitted when a QR code is received
+                 * @event Client#device_code
+                 * @param {string} code device Code
+                 */
+                this.emit(Events.DEVICE_CODE_RECEIVED, code);
+                if (this.options.qrMaxRetries > 0) {
+                    if (qrRetries > this.options.qrMaxRetries) {
+                        this.emit(
+                            Events.DISCONNECTED,
+                            'Max qrcode retries reached'
+                        );
+                        await this.destroy();
+                    }
+                }
+            });
+
+            await page.evaluate(
+                function (selector) {
+                    const qr_container = document.querySelector(
+                        selector
+                    );
+                    let qrText = qr_container.innerText;
+                    qrText = qrText.replace(/\s|\n/g, '');
+                    window.qrChanged(qrText);
+
+                    this.observer = new MutationObserver((muts) => {
+                        muts.forEach((mut) => {
+                            // Listens to qr token change
+                            if (
+                                mut.type === 'childList'
+                            ) {
+                                if (mut.addedNodes.length == 1) {
+                                    let addNode = mut.addedNodes[0];
+                                    console.log('打印添加的节点:', addNode);
+                                    // 查询该Node下的attributes的"aria-details"属性  
+                                    let ariaDetails = addNode.getAttribute('aria-details');
+                                    if (ariaDetails == 'link-device-phone-number-code-screen-instructions') {
+                                        let qrText = addNode.innerText;
+                                        qrText = qrText.replace(/\s|\n/g, '');
+                                        window.qrChanged(qrText);
+                                    }
+                                }
+                                if (mut.removedNodes.length == 1) {
+                                    let removedNode = mut.removedNodes[0];
+                                    console.log('打印删除的节点:', removedNode);
+                                    // 查询该Node下的attributes的"aria-details"属性  
+                                    let ariaDetails = removedNode.getAttribute('aria-details');
+                                    if (ariaDetails == 'link-device-phone-number-code-screen-instructions') {
+                                        console.log('qr元素被删除，判断是否超时');
+                                    }
+                                }
+                            }
+
+                            // if (mut.removedNodes.includes(qr_container)) { 
+                            //     console.log('设备码被移除，可能是需要重新获取设备码');
+                            //     this.observer.disconnect();
+                            // }
+                            // Listens to retry button, when found, click it
+                            // else if (mut.type === 'childList') {
+                            //     const retry_button = document.querySelector(
+                            //         selectors.QR_RETRY_BUTTON
+                            //     );
+                            //     if (retry_button) retry_button.click();
+                            // }
+                        });
+                    });
+                    this.observer.observe(qr_container.parentElement, {
+                        subtree: true,
+                        childList: true,
+                        characterData: true
+                    });
+                },
+                QR_CONTAINER
             );
         }
     }

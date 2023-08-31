@@ -59,6 +59,7 @@ exports.Events = {
     GROUP_ADMIN_CHANGED: 'group_admin_changed',
     GROUP_UPDATE: 'group_update',
     QR_RECEIVED: 'qr',
+    DEVICE_CODE_RECEIVED: 'device_code',
     LOADING_SCREEN: 'loading_screen',
     DISCONNECTED: 'disconnected',
     STATE_CHANGED: 'change_state',
