@@ -841,8 +841,8 @@ class Client extends EventEmitter {
 
             const SELECT_COUNTRY_FORM =
                 '.landing-main div:nth-child(1) div:nth-child(3)';
-            const RETURN_QR_CODE =
-                '.landing-main div:nth-child(1) div:nth-child(4)';
+            // const RETURN_QR_CODE =
+            //     '.landing-main div:nth-child(1) div:nth-child(4)';
             const SELECT_COUNTRY_BUTTON =
                 'div[date-testid="link-device-phone-number-country-selector"]';
             const INPUT_FILTER_COUNTRY = '.lexical-rich-text-input';
@@ -1016,112 +1016,6 @@ class Client extends EventEmitter {
                     QR_RETRY_BUTTON,
                 }
             );
-        }
-    }
-
-    async enterPhoneNumber(cCode, number) {
-        const page = this.pupPage;
-        const SELECT_COUNTRY_FORM =
-            '.landing-main div:nth-child(1) div:nth-child(3)';
-        const SELECT_COUNTRY_BUTTON =
-            'div[date-testid="link-device-phone-number-country-selector"]';
-        const RETURN_QR_CODE =
-            '.landing-main div:nth-child(1) div:nth-child(4)';
-
-        if (this.deviceQrProcess == 1) {
-            try {
-                await page.waitForSelector(SELECT_COUNTRY_FORM, {
-                    timeout: 3000,
-                });
-                await page.waitForSelector(SELECT_COUNTRY_BUTTON, {
-                    timeout: this.options.authTimeoutMs,
-                });
-                await page.waitForSelector(RETURN_QR_CODE, {
-                    timeout: 3000,
-                });
-            } catch (error) {
-                console.log(error);
-                console.log('捕获到报错信息');
-            }
-
-            // const selectCountryElement = await page.$(SELECT_COUNTRY_BUTTON);
-            const selectCountryElement = await page.$(RETURN_QR_CODE);
-
-            if (selectCountryElement) {
-                // 点击该div元素
-                await selectCountryElement.click();
-
-                await selectCountryElement.waitForSelector(
-                    `${SELECT_COUNTRY_BUTTON} .selectable-text.copyable-text`,
-                    {
-                        timeout: this.options.authTimeoutMs,
-                    }
-                );
-
-                // const selectTextElement = await selectCountryElement.$(`${SELECT_COUNTRY_BUTTON} .selectable-text.copyable-text`);
-                // 输入文本
-                await page.type(
-                    `${SELECT_COUNTRY_BUTTON} .selectable-text.copyable-text`,
-                    cCode
-                );
-            } else {
-                console.error('未找到具有指定date-testid属性的div元素');
-            }
-
-            // try {
-            //     // 找到 class 为 'landing-main' 的 div 元素
-            //     const landingMainDiv = await page.waitForSelector(
-            //         '.landing-main'
-            //     );
-
-            //     // 找到 landingMainDiv 的第一个 div 子元素
-            //     const childElem = await landingMainDiv.$('div');
-
-            //     if (childElem) {
-            //         // 获取 childElem 的所有 div 子元素
-            //         const divElements = await childElem.$$('div');
-
-            //         if (divElements.length >= 4) {
-            //             // 获取第三个和第四个子元素
-            //             const [grandsonElemThree, grandsonElemFour] =
-            //                 divElements.slice(2, 4);
-
-            //             // 检查 grandsonElemThree 是否有3个子元素
-            //             const grandsonDivElements = await grandsonElemThree.$$(
-            //                 'div'
-            //             );
-
-            //             if (grandsonDivElements.length === 3) {
-            //                 const [selectElem, inputElem, buttonElem] =
-            //                     grandsonDivElements;
-
-            //                 // 在这里可以执行你需要的操作，比如获取文本内容、点击等
-            //                 // 例如，获取 selectElem、inputElem 和 buttonElem 的文本内容
-            //                 const selectText = await selectElem.evaluate(
-            //                     (el) => el.textContent
-            //                 );
-            //                 const inputText = await inputElem.evaluate(
-            //                     (el) => el.textContent
-            //                 );
-            //                 const buttonText = await buttonElem.evaluate(
-            //                     (el) => el.textContent
-            //                 );
-
-            //                 console.log('selectElem 文本内容:', selectText);
-            //                 console.log('inputElem 文本内容:', inputText);
-            //                 console.log('buttonElem 文本内容:', buttonText);
-            //             } else {
-            //                 console.error('grandsonElemThree 不包含3个子元素');
-            //             }
-            //         } else {
-            //             console.error('childElem 不包含至少4个子元素');
-            //         }
-            //     } else {
-            //         console.error('未找到第一个子元素 childElem');
-            //     }
-            // } catch (error) {
-            //     console.error('执行操作时发生错误:', error);
-            // }
         }
     }
 
