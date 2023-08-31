@@ -80,7 +80,7 @@ class Client extends EventEmitter {
             if (Object.prototype.hasOwnProperty.call(this.options, 'session')) {
                 process.emitWarning(
                     'options.session is deprecated and will be removed in a future release due to incompatibility with multi-device. ' +
-                        'Use the LocalAuth authStrategy, don\'t pass in a session as an option, or suppress this warning by using the LegacySessionAuth strategy explicitly (see https://wwebjs.dev/guide/authentication.html#legacysessionauth-strategy).',
+                        "Use the LocalAuth authStrategy, don't pass in a session as an option, or suppress this warning by using the LegacySessionAuth strategy explicitly (see https://wwebjs.dev/guide/authentication.html#legacysessionauth-strategy).",
                     'DeprecationWarning'
                 );
 
@@ -97,9 +97,10 @@ class Client extends EventEmitter {
 
         this.authStrategy.setup(this);
 
-        this.waitEnterPhone = null;
+        this.deviceQrProcess = null;
         this.pupBrowser = null;
         this.pupPage = null;
+        this.observer = null;
 
         Util.setFfmpegPath(this.options.ffmpegPath);
     }
@@ -140,6 +141,7 @@ class Client extends EventEmitter {
         await page.setUserAgent(this.options.userAgent);
         if (this.options.bypassCSP) await page.setBypassCSP(true);
 
+        this.deviceQrProcess = 0;
         this.pupBrowser = browser;
         this.pupPage = page;
 
@@ -150,6 +152,11 @@ class Client extends EventEmitter {
             waitUntil: 'load',
             timeout: 0,
             referer: 'https://whatsapp.com/',
+        });
+
+        // 监听页面内部错误事件
+        page.on('pageerror', (pageError) => {
+            console.error('监控页面崩溃:', pageError);
         });
 
         await page.evaluate(`function getElementByXpath(path) {
@@ -243,97 +250,7 @@ class Client extends EventEmitter {
                 return;
             }
 
-            // eslint-disable-next-line no-constant-condition
-            if (this.options.authMethodType == 0) {
-                console.log('执行设备验证码登录');
-                const DEVICE_QRCODE_BUTTON =
-                    'span[data-testid="link-device-qrcode-alt-linking-hint"]';
-                let deviceQrProcess = 0;
-
-                await page.waitForSelector(DEVICE_QRCODE_BUTTON, {
-                    timeout: this.options.authTimeoutMs,
-                });
-
-                await page.evaluate(
-                    async function (selectors) {
-                        const device_qrcode_button = document.querySelector(
-                            selectors.DEVICE_QRCODE_BUTTON
-                        );
-                        if (device_qrcode_button) {
-                            device_qrcode_button.click();
-                        }
-                        // window.qrChanged(qr_container.dataset.ref);
-
-                        await selectors.util.sleep(2000);
-
-                        await this.pupPage.reload();
-                    }, {
-                        DEVICE_QRCODE_BUTTON,
-                        util: Util
-                    }
-                );
-            } else {
-                console.log('执行扫码登录');
-                const QR_CONTAINER = 'div[data-ref]';
-                const QR_RETRY_BUTTON = 'div[data-ref] > span > button';
-                let qrRetries = 0;
-                await page.exposeFunction('qrChanged', async (qr) => {
-                    /**
-                     * Emitted when a QR code is received
-                     * @event Client#qr
-                     * @param {string} qr QR Code
-                     */
-                    this.emit(Events.QR_RECEIVED, qr);
-                    if (this.options.qrMaxRetries > 0) {
-                        qrRetries++;
-                        if (qrRetries > this.options.qrMaxRetries) {
-                            this.emit(
-                                Events.DISCONNECTED,
-                                'Max qrcode retries reached'
-                            );
-                            await this.destroy();
-                        }
-                    }
-                });
-
-                await page.evaluate(
-                    function (selectors) {
-                        const qr_container = document.querySelector(
-                            selectors.QR_CONTAINER
-                        );
-                        window.qrChanged(qr_container.dataset.ref);
-
-                        const obs = new MutationObserver((muts) => {
-                            muts.forEach((mut) => {
-                                // Listens to qr token change
-                                if (
-                                    mut.type === 'attributes' &&
-                                    mut.attributeName === 'data-ref'
-                                ) {
-                                    window.qrChanged(mut.target.dataset.ref);
-                                }
-                                // Listens to retry button, when found, click it
-                                else if (mut.type === 'childList') {
-                                    const retry_button = document.querySelector(
-                                        selectors.QR_RETRY_BUTTON
-                                    );
-                                    if (retry_button) retry_button.click();
-                                }
-                            });
-                        });
-                        obs.observe(qr_container.parentElement, {
-                            subtree: true,
-                            childList: true,
-                            attributes: true,
-                            attributeFilter: ['data-ref'],
-                        });
-                    },
-                    {
-                        QR_CONTAINER,
-                        QR_RETRY_BUTTON,
-                    }
-                );
-            }
+            await this.handlerAuthentication();
 
             // Wait for code scan
             try {
@@ -901,8 +818,311 @@ class Client extends EventEmitter {
         });
     }
 
-    async enterPhoneNumber() {
+    /**
+     * 线程阻塞毫秒数
+     * @param ms
+     */
+    sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+    }
 
+    async handlerAuthentication() {
+        const page = this.pupPage;
+        const deviceQrOptions = this.options.deviceQrOps;
+        if (deviceQrOptions && deviceQrOptions.phoneNumber) {
+            console.log('执行设备验证码登录');
+            const DEVICE_QRCODE_BUTTON = 'span[role="button"]';
+
+            await page.waitForSelector(DEVICE_QRCODE_BUTTON, {
+                timeout: this.options.authTimeoutMs,
+            });
+            const deviceQrcodeButton = await page.$(DEVICE_QRCODE_BUTTON);
+            await deviceQrcodeButton.click();
+
+            const SELECT_COUNTRY_FORM =
+                '.landing-main div:nth-child(1) div:nth-child(3)';
+            const RETURN_QR_CODE =
+                '.landing-main div:nth-child(1) div:nth-child(4)';
+            const SELECT_COUNTRY_BUTTON =
+                'div[date-testid="link-device-phone-number-country-selector"]';
+            const INPUT_FILTER_COUNTRY = '.lexical-rich-text-input';
+            const FILTER_COUNTRY_OPTION = 'div[role="listbox"]';
+
+            await page.waitForSelector(SELECT_COUNTRY_BUTTON, {
+                timeout: this.options.authTimeoutMs,
+            });
+            const selectCountryElement = await page.$(SELECT_COUNTRY_BUTTON);
+            await selectCountryElement.click();
+            await page.waitForSelector(INPUT_FILTER_COUNTRY, {
+                timeout: this.options.authTimeoutMs,
+            });
+            await page.type(INPUT_FILTER_COUNTRY, '86');
+            await this.sleep(200);
+
+            await page.waitForSelector(FILTER_COUNTRY_OPTION, {
+                timeout: this.options.authTimeoutMs,
+            });
+            const selectCountryOptionElement = await page.$(
+                `${FILTER_COUNTRY_OPTION} div:nth-child(1)`
+            );
+
+            await selectCountryOptionElement.click();
+
+            await this.sleep(1000);
+
+            await page.type('input', '13991379829');
+
+            await this.sleep(1000);
+
+            const nextButton = await page.$(
+                `${SELECT_COUNTRY_FORM} div:nth-child(3)`
+            );
+            await nextButton.click();
+
+            const PHONE_NUMBER_ERROR =
+                '#link-device-phone-number-entry-screen-error';
+            const QR_CONTAINER =
+                'div[aria-details="link-device-phone-number-code-screen-instructions"]';
+
+            const waitForElement1 = page.waitForSelector(PHONE_NUMBER_ERROR, {
+                timeout: 5000,
+            }); 
+            const waitForElement2 = page.waitForSelector(QR_CONTAINER, {
+                timeout: 5000,
+            }); 
+            await Promise.race([waitForElement1, waitForElement2]);
+
+            if (await page.$(PHONE_NUMBER_ERROR)) {
+                console.log('元素1出现，执行相应的逻辑');
+            } else if (await page.$(QR_CONTAINER)) {
+                console.log('元素2出现，执行相应的逻辑');
+            }
+
+            // let qrRetries = 0;
+            // await page.exposeFunction('qrChanged', async (qr) => {
+            //     /**
+            //      * Emitted when a QR code is received
+            //      * @event Client#qr
+            //      * @param {string} qr QR Code
+            //      */
+            //     this.emit(Events.QR_RECEIVED, qr);
+            //     if (this.options.qrMaxRetries > 0) {
+            //         qrRetries++;
+            //         if (qrRetries > this.options.qrMaxRetries) {
+            //             this.emit(
+            //                 Events.DISCONNECTED,
+            //                 'Max qrcode retries reached'
+            //             );
+            //             await this.destroy();
+            //         }
+            //     }
+            // });
+
+            // await page.evaluate(
+            //     function (selectors) {
+            //         const qr_container = document.querySelector(
+            //             selectors.QR_CONTAINER
+            //         );
+            //         window.qrChanged(qr_container.dataset.ref);
+
+            //         this.observer = new MutationObserver((muts) => {
+            //             muts.forEach((mut) => {
+            //                 // Listens to qr token change
+            //                 if (
+            //                     mut.type === 'attributes' &&
+            //                     mut.attributeName === 'data-ref'
+            //                 ) {
+            //                     window.qrChanged(mut.target.dataset.ref);
+            //                 }
+            //                 // Listens to retry button, when found, click it
+            //                 else if (mut.type === 'childList') {
+            //                     const retry_button = document.querySelector(
+            //                         selectors.QR_RETRY_BUTTON
+            //                     );
+            //                     if (retry_button) retry_button.click();
+            //                 }
+            //             });
+            //         });
+            //         this.observer.observe(qr_container.parentElement, {
+            //             subtree: true,
+            //             childList: true,
+            //             attributes: true,
+            //             attributeFilter: ['data-ref'],
+            //         });
+            //     },
+            //     {
+            //         QR_CONTAINER,
+            //         QR_RETRY_BUTTON,
+            //     }
+            // );
+        } else {
+            console.log('执行扫码登录');
+            const QR_CONTAINER = 'div[data-ref]';
+            const QR_RETRY_BUTTON = 'div[data-ref] > span > button';
+            let qrRetries = 0;
+            await page.exposeFunction('qrChanged', async (qr) => {
+                /**
+                 * Emitted when a QR code is received
+                 * @event Client#qr
+                 * @param {string} qr QR Code
+                 */
+                this.emit(Events.QR_RECEIVED, qr);
+                if (this.options.qrMaxRetries > 0) {
+                    qrRetries++;
+                    if (qrRetries > this.options.qrMaxRetries) {
+                        this.emit(
+                            Events.DISCONNECTED,
+                            'Max qrcode retries reached'
+                        );
+                        await this.destroy();
+                    }
+                }
+            });
+
+            await page.evaluate(
+                function (selectors) {
+                    const qr_container = document.querySelector(
+                        selectors.QR_CONTAINER
+                    );
+                    window.qrChanged(qr_container.dataset.ref);
+
+                    this.observer = new MutationObserver((muts) => {
+                        muts.forEach((mut) => {
+                            // Listens to qr token change
+                            if (
+                                mut.type === 'attributes' &&
+                                mut.attributeName === 'data-ref'
+                            ) {
+                                window.qrChanged(mut.target.dataset.ref);
+                            }
+                            // Listens to retry button, when found, click it
+                            else if (mut.type === 'childList') {
+                                const retry_button = document.querySelector(
+                                    selectors.QR_RETRY_BUTTON
+                                );
+                                if (retry_button) retry_button.click();
+                            }
+                        });
+                    });
+                    this.observer.observe(qr_container.parentElement, {
+                        subtree: true,
+                        childList: true,
+                        attributes: true,
+                        attributeFilter: ['data-ref'],
+                    });
+                },
+                {
+                    QR_CONTAINER,
+                    QR_RETRY_BUTTON,
+                }
+            );
+        }
+    }
+
+    async enterPhoneNumber(cCode, number) {
+        const page = this.pupPage;
+        const SELECT_COUNTRY_FORM =
+            '.landing-main div:nth-child(1) div:nth-child(3)';
+        const SELECT_COUNTRY_BUTTON =
+            'div[date-testid="link-device-phone-number-country-selector"]';
+        const RETURN_QR_CODE =
+            '.landing-main div:nth-child(1) div:nth-child(4)';
+
+        if (this.deviceQrProcess == 1) {
+            try {
+                await page.waitForSelector(SELECT_COUNTRY_FORM, {
+                    timeout: 3000,
+                });
+                await page.waitForSelector(SELECT_COUNTRY_BUTTON, {
+                    timeout: this.options.authTimeoutMs,
+                });
+                await page.waitForSelector(RETURN_QR_CODE, {
+                    timeout: 3000,
+                });
+            } catch (error) {
+                console.log(error);
+                console.log('捕获到报错信息');
+            }
+
+            // const selectCountryElement = await page.$(SELECT_COUNTRY_BUTTON);
+            const selectCountryElement = await page.$(RETURN_QR_CODE);
+
+            if (selectCountryElement) {
+                // 点击该div元素
+                await selectCountryElement.click();
+
+                await selectCountryElement.waitForSelector(
+                    `${SELECT_COUNTRY_BUTTON} .selectable-text.copyable-text`,
+                    {
+                        timeout: this.options.authTimeoutMs,
+                    }
+                );
+
+                // const selectTextElement = await selectCountryElement.$(`${SELECT_COUNTRY_BUTTON} .selectable-text.copyable-text`);
+                // 输入文本
+                await page.type(
+                    `${SELECT_COUNTRY_BUTTON} .selectable-text.copyable-text`,
+                    cCode
+                );
+            } else {
+                console.error('未找到具有指定date-testid属性的div元素');
+            }
+
+            // try {
+            //     // 找到 class 为 'landing-main' 的 div 元素
+            //     const landingMainDiv = await page.waitForSelector(
+            //         '.landing-main'
+            //     );
+
+            //     // 找到 landingMainDiv 的第一个 div 子元素
+            //     const childElem = await landingMainDiv.$('div');
+
+            //     if (childElem) {
+            //         // 获取 childElem 的所有 div 子元素
+            //         const divElements = await childElem.$$('div');
+
+            //         if (divElements.length >= 4) {
+            //             // 获取第三个和第四个子元素
+            //             const [grandsonElemThree, grandsonElemFour] =
+            //                 divElements.slice(2, 4);
+
+            //             // 检查 grandsonElemThree 是否有3个子元素
+            //             const grandsonDivElements = await grandsonElemThree.$$(
+            //                 'div'
+            //             );
+
+            //             if (grandsonDivElements.length === 3) {
+            //                 const [selectElem, inputElem, buttonElem] =
+            //                     grandsonDivElements;
+
+            //                 // 在这里可以执行你需要的操作，比如获取文本内容、点击等
+            //                 // 例如，获取 selectElem、inputElem 和 buttonElem 的文本内容
+            //                 const selectText = await selectElem.evaluate(
+            //                     (el) => el.textContent
+            //                 );
+            //                 const inputText = await inputElem.evaluate(
+            //                     (el) => el.textContent
+            //                 );
+            //                 const buttonText = await buttonElem.evaluate(
+            //                     (el) => el.textContent
+            //                 );
+
+            //                 console.log('selectElem 文本内容:', selectText);
+            //                 console.log('inputElem 文本内容:', inputText);
+            //                 console.log('buttonElem 文本内容:', buttonText);
+            //             } else {
+            //                 console.error('grandsonElemThree 不包含3个子元素');
+            //             }
+            //         } else {
+            //             console.error('childElem 不包含至少4个子元素');
+            //         }
+            //     } else {
+            //         console.error('未找到第一个子元素 childElem');
+            //     }
+            // } catch (error) {
+            //     console.error('执行操作时发生错误:', error);
+            // }
+        }
     }
 
     async initWebVersionCache() {

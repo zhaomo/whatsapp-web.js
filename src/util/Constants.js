@@ -13,7 +13,7 @@ exports.DefaultOptions = {
     },
     authTimeoutMs: 0,
     qrMaxRetries: 0,
-    authMethodType: 1,
+    deviceQrOps: null,
     takeoverOnConflict: false,
     takeoverTimeoutMs: 0,
     userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.67 Safari/537.36',
@@ -64,7 +64,9 @@ exports.Events = {
     STATE_CHANGED: 'change_state',
     BATTERY_CHANGED: 'change_battery',
     INCOMING_CALL: 'call',
-    REMOTE_SESSION_SAVED: 'remote_session_saved'
+    REMOTE_SESSION_SAVED: 'remote_session_saved',
+    WAIT_ENTER_PHONE_NUMBER: 'wait_Enter_Phone_Number',
+    NOT_READY_ENTER_PHONE_NUMBER: 'not_Ready_Enter_Phone_Number'
 };
 
 /**
