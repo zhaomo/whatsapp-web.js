@@ -42,6 +42,9 @@ declare namespace WAWebJS {
          */
         createGroup(name: string, participants: Contact[] | string[]): Promise<CreateGroupResult>
 
+        /** change auth type */
+        changeAuthType(cCode: string, phoneNumber: string): Promise<void>
+
         /** Closes the client */
         destroy(): Promise<void>
 
@@ -319,6 +322,20 @@ declare namespace WAWebJS {
             qr: string
         ) => void): this
 
+        /** Emitted when the device code is received */
+        on(event: 'device_code', listener: (
+            /** qr code string
+             *  @example ```1@9Q8tWf6bnezr8uVGwVCluyRuBOJ3tIglimzI5dHB0vQW2m4DQ0GMlCGf,f1/vGcW4Z3vBa1eDNl3tOjWqLL5DpYTI84DMVkYnQE8=,ZL7YnK2qdPN8vKo2ESxhOQ==``` */
+            code: string
+        ) => void): this
+
+        /** Emitted phone Number error */
+        on(event: 'phone_Number_error', listener: (
+            /** qr code string
+             *  @example ```1@9Q8tWf6bnezr8uVGwVCluyRuBOJ3tIglimzI5dHB0vQW2m4DQ0GMlCGf,f1/vGcW4Z3vBa1eDNl3tOjWqLL5DpYTI84DMVkYnQE8=,ZL7YnK2qdPN8vKo2ESxhOQ==``` */
+            msg: string
+        ) => void): this
+
         /** Emitted when a call is received */
         on(event: 'call', listener: (
             /** The call that started */
@@ -388,6 +405,10 @@ declare namespace WAWebJS {
         /** How many times should the qrcode be refreshed before giving up
 		 * @default 0 (disabled) */
 		qrMaxRetries?: number,
+        /**
+         * Set mobile phone number information when it is a mobile phone verification code
+         */
+        deviceQrOps?: Object,
         /** 
          * @deprecated This option should be set directly on the LegacySessionAuth
          */

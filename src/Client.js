@@ -967,7 +967,7 @@ class Client extends EventEmitter {
             console.log('手机号验证出错，走错误流程');
             this.emit(
                 Events.PHONE_NUMBER_ERROR,
-                'Valid phone number is required'
+                `+${cCode} ${phoneNumber} is invalid`
             );
         } else if (await page.$(QR_CONTAINER)) {
             console.log('执行设备码流程');

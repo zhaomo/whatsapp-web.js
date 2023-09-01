@@ -23,7 +23,7 @@ client.on('loading_screen', (percent, message) => {
 client.on('qr', (qr) => {
     // NOTE: This event will not be fired if a session is specified.
     console.log('QR RECEIVED', qr);
-    client.changeAuthType('86', '13991379829');
+    client.changeAuthType('86', '12345678900');
 });
 
 client.on('device_code', (code) => {
@@ -31,9 +31,9 @@ client.on('device_code', (code) => {
     console.log('DEVICE CODE RECEIVED', code);
 });
 
-client.on('phone_Number_error', () => {
+client.on('phone_Number_error', (msg) => {
     // NOTE: This event will valid phone number is required.
-    console.log('VALID PHONE NUMBER IS REQUIRED');
+    console.log('VALID PHONE NUMBER IS REQUIRED', msg);
 });
 
 client.on('authenticated', () => {
