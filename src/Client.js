@@ -97,7 +97,7 @@ class Client extends EventEmitter {
 
         this.authStrategy.setup(this);
 
-        this.deviceQrProcess = null;
+        this.isDeviceCode = 0;
         this.pupBrowser = null;
         this.pupPage = null;
         this.observer = null;
@@ -115,7 +115,7 @@ class Client extends EventEmitter {
 
         const puppeteerOpts = this.options.puppeteer;
         if (puppeteerOpts && puppeteerOpts.browserWSEndpoint) {
-            console.log('==========无需复用浏览器==========');
+            console.log('==========需复用浏览器==========');
             browser = await puppeteer.connect(puppeteerOpts);
             page = await browser.newPage();
         } else {
@@ -127,11 +127,15 @@ class Client extends EventEmitter {
 
             console.log('puppeteerOpts: ', puppeteerOpts);
             console.log('browserArgs: ', browserArgs);
-            browser = await puppeteer.launch({
-                ...puppeteerOpts,
-                args: browserArgs,
-            });
-            page = (await browser.pages())[0];
+            try {
+                browser = await puppeteer.launch({
+                    ...puppeteerOpts,
+                    args: browserArgs,
+                });
+                page = (await browser.pages())[0];
+            } catch (error) {
+                console.log('启动错误:', error);
+            }
         }
 
         if (this.options.proxyAuthentication !== undefined) {
@@ -919,31 +923,37 @@ class Client extends EventEmitter {
         const INPUT_FILTER_COUNTRY = '.lexical-rich-text-input';
         const FILTER_COUNTRY_OPTION = 'div[role="listbox"]';
 
-        await page.waitForSelector(SELECT_COUNTRY_BUTTON, {
-            timeout: this.options.authTimeoutMs,
-        });
-        const selectCountryElement = await page.$(SELECT_COUNTRY_BUTTON);
-        await selectCountryElement.click();
-        await page.waitForSelector(INPUT_FILTER_COUNTRY, {
-            timeout: this.options.authTimeoutMs,
-        });
-        await page.type(INPUT_FILTER_COUNTRY, cCode=='1'?cKey:cCode);
-        await this.sleep(200);
-
-        await page.waitForSelector(FILTER_COUNTRY_OPTION, {
-            timeout: this.options.authTimeoutMs,
-        });
-        const selectCountryOptionElement = await page.$(
-            `${FILTER_COUNTRY_OPTION} div:nth-child(1)`
-        );
-
-        await selectCountryOptionElement.click();
-
-        await this.sleep(1000);
-
-        await page.type('input', phoneNumber);
-
-        await this.sleep(1000);
+        try {
+            await page.waitForSelector(SELECT_COUNTRY_BUTTON, {
+                timeout: this.options.authTimeoutMs,
+            });
+            const selectCountryElement = await page.$(SELECT_COUNTRY_BUTTON);
+            await selectCountryElement.click();
+            await page.waitForSelector(INPUT_FILTER_COUNTRY, {
+                timeout: this.options.authTimeoutMs,
+            });
+            await page.type(INPUT_FILTER_COUNTRY, cCode=='1'?cKey:cCode);
+            await this.sleep(200);
+    
+            await page.waitForSelector(FILTER_COUNTRY_OPTION, {
+                timeout: this.options.authTimeoutMs,
+            });
+            const selectCountryOptionElement = await page.$(
+                `${FILTER_COUNTRY_OPTION} div:nth-child(1)`
+            );
+    
+            await selectCountryOptionElement.click();
+    
+            await this.sleep(2000);
+    
+            await page.type('input', phoneNumber);
+    
+            await this.sleep(1000);
+        } catch (error) {
+            console.log('操作页面报错:', error);
+            page.reload();
+            await this.handlerAuthentication();
+        }
 
         const nextButton = await page.$(
             `${SELECT_COUNTRY_FORM} div:nth-child(3)`
@@ -1052,6 +1062,7 @@ class Client extends EventEmitter {
     }
 
     async changeAuthType(cCode, cKey, phoneNumber) {
+
         await this.destroy();
         if (phoneNumber && phoneNumber != '') {
             this.options.deviceQrOps = {
@@ -1100,9 +1111,6 @@ class Client extends EventEmitter {
      * Closes the client
      */
     async destroy() {
-        if (this.observer) {
-            this.observer.disconnect();
-        }
         await this.pupBrowser.close();
         await this.authStrategy.destroy();
     }
