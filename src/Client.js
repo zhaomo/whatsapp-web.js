@@ -1047,6 +1047,15 @@ class Client extends EventEmitter {
         }
     }
 
+    async changeAuthType(cCode, phoneNumber) {
+        await this.destroy();
+        this.options.deviceQrOps = {
+            cCode: cCode,
+            phoneNumber: phoneNumber,
+        };
+        await this.initialize();
+    }
+
     async initWebVersionCache() {
         const { type: webCacheType, ...webCacheOptions } =
             this.options.webVersionCache;

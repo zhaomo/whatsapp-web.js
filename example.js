@@ -7,10 +7,10 @@ const client = new Client({
         // args: ['--proxy-server=proxy-server-that-requires-authentication.example.com'],
         headless: false,
     },
-    deviceQrOps: {
-        cCode: '86',
-        phoneNumber: '13991379829',
-    },
+    // deviceQrOps: {
+    //     cCode: '86',
+    //     phoneNumber: '13991379829',
+    // },
     qrMaxRetries: 2,
 });
 
@@ -23,6 +23,7 @@ client.on('loading_screen', (percent, message) => {
 client.on('qr', (qr) => {
     // NOTE: This event will not be fired if a session is specified.
     console.log('QR RECEIVED', qr);
+    client.changeAuthType('86', '13991379829');
 });
 
 client.on('device_code', (code) => {
@@ -30,10 +31,10 @@ client.on('device_code', (code) => {
     console.log('DEVICE CODE RECEIVED', code);
 });
 
-client.on('wait_Enter_Phone_Number', () => {
-    // NOTE: This event will not be fired if a session is specified.
-    console.log('WAIT ENTER PHONE NUMBER');
-});
+// client.on('wait_Enter_Phone_Number', () => {
+//     // NOTE: This event will not be fired if a session is specified.
+//     console.log('WAIT ENTER PHONE NUMBER');
+// });
 
 client.on('authenticated', () => {
     console.log('AUTHENTICATED');
