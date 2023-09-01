@@ -25,7 +25,7 @@ client.on('qr', (qr) => {
     console.log('QR RECEIVED', qr);
 });
 
-client.on('qr', (code) => {
+client.on('device_code', (code) => {
     // NOTE: This event will not be fired if a session is specified.
     console.log('DEVICE CODE RECEIVED', code);
 });
