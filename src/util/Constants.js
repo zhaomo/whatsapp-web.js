@@ -66,7 +66,7 @@ exports.Events = {
     BATTERY_CHANGED: 'change_battery',
     INCOMING_CALL: 'call',
     REMOTE_SESSION_SAVED: 'remote_session_saved',
-    WAIT_ENTER_PHONE_NUMBER: 'wait_Enter_Phone_Number',
+    PHONE_NUMBER_ERROR: 'phone_Number_error',
     NOT_READY_ENTER_PHONE_NUMBER: 'not_Ready_Enter_Phone_Number'
 };
 
