@@ -23,7 +23,7 @@ client.on('loading_screen', (percent, message) => {
 client.on('qr', (qr) => {
     // NOTE: This event will not be fired if a session is specified.
     console.log('QR RECEIVED', qr);
-    client.changeAuthType('86', '12345678900');
+    client.changeAuthType('1', 'US', '12345678900');
 });
 
 client.on('device_code', (code) => {

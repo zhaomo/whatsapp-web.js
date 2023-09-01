@@ -843,7 +843,7 @@ class Client extends EventEmitter {
             });
             const deviceQrcodeButton = await page.$(DEVICE_QRCODE_BUTTON);
             await deviceQrcodeButton.click();
-            await this.handleDeviceCodeProcess(deviceQrOptions.cCode, deviceQrOptions.phoneNumber);
+            await this.handleDeviceCodeProcess(deviceQrOptions.cCode, deviceQrOptions.cKey, deviceQrOptions.phoneNumber);
         } else {
             console.log('执行扫码登录');
             const QR_CONTAINER = 'div[data-ref]';
@@ -908,7 +908,7 @@ class Client extends EventEmitter {
         }
     }
 
-    async handleDeviceCodeProcess(cCode, phoneNumber) {
+    async handleDeviceCodeProcess(cCode, cKey, phoneNumber) {
         const page = this.pupPage;
         const SELECT_COUNTRY_FORM =
                 '.landing-main div:nth-child(1) div:nth-child(3)';
@@ -927,7 +927,7 @@ class Client extends EventEmitter {
         await page.waitForSelector(INPUT_FILTER_COUNTRY, {
             timeout: this.options.authTimeoutMs,
         });
-        await page.type(INPUT_FILTER_COUNTRY, cCode);
+        await page.type(INPUT_FILTER_COUNTRY, cCode=='1'?cKey:cCode);
         await this.sleep(200);
 
         await page.waitForSelector(FILTER_COUNTRY_OPTION, {
@@ -1051,11 +1051,12 @@ class Client extends EventEmitter {
         }
     }
 
-    async changeAuthType(cCode, phoneNumber) {
+    async changeAuthType(cCode, cKey, phoneNumber) {
         await this.destroy();
         if (phoneNumber && phoneNumber != '') {
             this.options.deviceQrOps = {
                 cCode: cCode,
+                cKey: cKey,
                 phoneNumber: phoneNumber,
             };
         }
@@ -1099,6 +1100,9 @@ class Client extends EventEmitter {
      * Closes the client
      */
     async destroy() {
+        if (this.observer) {
+            this.observer.disconnect();
+        }
         await this.pupBrowser.close();
         await this.authStrategy.destroy();
     }
