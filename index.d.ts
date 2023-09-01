@@ -43,7 +43,7 @@ declare namespace WAWebJS {
         createGroup(name: string, participants: Contact[] | string[]): Promise<CreateGroupResult>
 
         /** change auth type */
-        changeAuthType(cCode: string, phoneNumber: string): Promise<void>
+        changeAuthType(cCode: string, cKey: string, phoneNumber: string): Promise<void>
 
         /** Closes the client */
         destroy(): Promise<void>
