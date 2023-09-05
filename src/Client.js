@@ -100,7 +100,6 @@ class Client extends EventEmitter {
         this.isDeviceCode = 0;
         this.pupBrowser = null;
         this.pupPage = null;
-        this.observer = null;
 
         Util.setFfmpegPath(this.options.ffmpegPath);
     }
@@ -124,9 +123,7 @@ class Client extends EventEmitter {
             if (!browserArgs.find((arg) => arg.includes('--user-agent'))) {
                 browserArgs.push(`--user-agent=${this.options.userAgent}`);
             }
-
-            console.log('puppeteerOpts: ', puppeteerOpts);
-            console.log('browserArgs: ', browserArgs);
+            
             try {
                 browser = await puppeteer.launch({
                     ...puppeteerOpts,
@@ -134,7 +131,7 @@ class Client extends EventEmitter {
                 });
                 page = (await browser.pages())[0];
             } catch (error) {
-                console.log('启动错误:', error);
+                this.emit(Events.INITIALIZING_FAILURE, '启动客户端失败');
             }
         }
 

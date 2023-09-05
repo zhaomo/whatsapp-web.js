@@ -39,6 +39,7 @@ exports.Status = {
  * @enum {string}
  */
 exports.Events = {
+    INITIALIZING_FAILURE: 'initializating_failure',
     AUTHENTICATED: 'authenticated',
     AUTHENTICATION_FAILURE: 'auth_failure',
     READY: 'ready',

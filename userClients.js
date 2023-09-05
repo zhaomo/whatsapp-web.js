@@ -1,22 +1,11 @@
-const { Client, Location, List, Buttons, LocalAuth } = require('./index');
+const { Client, Location, List, Buttons } = require('./index');
 
 module.exports = class UserClient {
     /**
      * 构造函数
      * @param {string} key       客户端mapKey唯一索引
      * @param {Object} option    客户端参数
-     * {
-     *      authStrategy: new LocalAuth(),
-     *      puppeteer: {
-     *          // args: ['--proxy-server=proxy-server-that-requires-authentication.example.com'],
-     *          headless: false,
-     *      },
-     *      // deviceQrOps: {
-     *      //     cCode: '86',
-     *      //     phoneNumber: '13991379829',
-     *      // },
-     *      qrMaxRetries: 2,
-     *  }
+     * class内部的属性clientStatus: 0-初始化中;-1-初始化失败;1-初始化完成待qr扫码登录;2-初始化完成待code验证登录;3-登录完成初始化成功;
      */
     constructor(option) {
         console.log('option:', option);
@@ -26,9 +15,11 @@ module.exports = class UserClient {
             throw new Error('启动错误');
         }
         this.client = new Client(option);
+        this.clientState = 0;
     }
 
     async init() {
+
         this.client.initialize();
 
         this.client.on('loading_screen', (percent, message) => {
