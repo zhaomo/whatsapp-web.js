@@ -9,6 +9,7 @@ const clients = [
             clientId: 'key1',
         }),
         puppeteer: {
+            args: ['--disable-gpu', '--no-sandbox', '--disable-dev-shm-usage'],
             headless: false,
         },
         qrMaxRetries: 2,
@@ -18,6 +19,7 @@ const clients = [
             clientId: 'key2',
         }),
         puppeteer: {
+            args: ['--disable-gpu', '--no-sandbox', '--disable-dev-shm-usage'],
             headless: false,
         },
         deviceQrOps: {
@@ -26,6 +28,58 @@ const clients = [
         },
         qrMaxRetries: 2,
     },
+    {
+        authStrategy: new LocalAuth({
+            clientId: 'key3',
+        }),
+        puppeteer: {
+            headless: false,
+        },
+        deviceQrOps: {
+            cCode: '55',
+            phoneNumber: '13991379829',
+        },
+        qrMaxRetries: 2,
+    },
+    // {
+    //     authStrategy: new LocalAuth({
+    //         clientId: 'key4',
+    //     }),
+    //     puppeteer: {
+    //         headless: false,
+    //     },
+    //     deviceQrOps: {
+    //         cCode: '86',
+    //         phoneNumber: '13991379829',
+    //     },
+    //     qrMaxRetries: 2,
+    // },
+    // {
+    //     authStrategy: new LocalAuth({
+    //         clientId: 'key5',
+    //     }),
+    //     puppeteer: {
+    //         headless: false,
+    //     },
+    //     deviceQrOps: {
+    //         cCode: '86',
+    //         phoneNumber: '13991379829',
+    //     },
+    //     qrMaxRetries: 2,
+    // },
+    // {
+    //     authStrategy: new LocalAuth({
+    //         clientId: 'key6',
+    //     }),
+    //     puppeteer: {
+    //         headless: false,
+    //     },
+    //     deviceQrOps: {
+    //         cCode: '86',
+    //         phoneNumber: '13991379829',
+    //     },
+    //     qrMaxRetries: 2,
+    // },
 ];
 
 async function createClient() {

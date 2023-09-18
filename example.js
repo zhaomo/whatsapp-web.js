@@ -5,6 +5,7 @@ const client = new Client({
     // proxyAuthentication: { username: 'username', password: 'password' },
     puppeteer: {
         // args: ['--proxy-server=proxy-server-that-requires-authentication.example.com'],
+        args: ['--disable-gpu', '--no-sandbox', '--disable-dev-shm-usage'],
         headless: false,
     },
     // deviceQrOps: {
